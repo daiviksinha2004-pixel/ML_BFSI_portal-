@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { Database, Lock, User, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import AnimatedLogo from '../components/ui/AnimatedLogo';
 
 const Login = () => {
   const { login } = useAuth();
+  const { isDark } = useTheme();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -32,11 +35,20 @@ const Login = () => {
       <div className="w-full max-w-md p-8 rounded-3xl backdrop-blur-2xl bg-white/5 border border-white/10 shadow-2xl z-10 animate-fade-in-up">
         
         <div className="flex flex-col items-center mb-8">
-          <div className="p-4 rounded-2xl bg-white/10 border border-white/10 text-white mb-4 shadow-lg">
-            <Database size={32} />
-          </div>
-          <h2 className="text-2xl font-light text-white tracking-wide">Enterprise Analytics</h2>
-          <p className="text-sm text-gray-400 mt-2">Sign in to access your dashboard</p>
+          <AnimatedLogo className="mb-4 transform scale-110" />
+          {isDark ? (
+            <>
+              <h2 className="text-2xl font-light text-white tracking-wide">Enterprise Analytics</h2>
+              <p className="text-sm text-gray-400 mt-2">Sign in to access your dashboard</p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold tracking-wide" style={{ color: '#4f46e5' }}>
+                Welcome Back! 👋
+              </h2>
+              <p className="text-sm mt-2" style={{ color: '#64748b' }}>Sign in to your analytics dashboard</p>
+            </>
+          )}
         </div>
 
         {error && (

@@ -7,3 +7,4 @@ from app.models.ingestion import IngestionBatch, Upload        # noqa
 from app.models.insurance import LifeCampaignRecord, HealthRetentionRecord  # noqa
 from app.models.collections import CollectionRecord            # noqa
 from app.models.ml_schemas import MLFeatureSchema              # noqa
+from app.models.prediction_cache import LifePredictionCache    # noqa

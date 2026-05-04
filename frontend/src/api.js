@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE = 'http://localhost:8080';
+const BASE = 'http://localhost:8000';
 
 // ── V1 instance (existing — unchanged)
 const api = axios.create({

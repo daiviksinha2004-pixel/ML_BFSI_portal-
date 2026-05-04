@@ -1,0 +1,52 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   ANIMATED LOGO WORDART
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.animated-logo-container {
+  display: inline-flex;
+  align-items: baseline;
+  position: relative;
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  user-select: none;
+  cursor: default;
+  overflow: hidden;
+  padding: 4px 8px;
+}
+
+.logo-text-ats {
+  font-weight: 900;
+  font-size: 2.2rem;
+  letter-spacing: -0.06em;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  position: relative;
+  z-index: 1;
+}
+
+.logo-text-services {
+  font-weight: 600;
+  font-size: 1.8rem;
+  letter-spacing: -0.03em;
+  margin-left: 2px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Dark Mode ───────────────────────────────────────────────────────── */
+.animated-logo-container.dark .logo-text-ats {
+  background-image: linear-gradient(135deg, #ff4d6d 0%, #ff758f 100%);
+  filter: drop-shadow(0 2px 8px rgba(255, 77, 109, 0.4));
+}
+.animated-logo-container.dark .logo-text-services {
+  color: #e2e8f0;
+}
+
+/* ── Light Mode ──────────────────────────────────────────────────────── */
+.animated-logo-container.light .logo-text-ats {
+  background-image: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.3));
+}
+.animated-logo-container.light .logo-text-services {
+  color: #1e293b;
+}

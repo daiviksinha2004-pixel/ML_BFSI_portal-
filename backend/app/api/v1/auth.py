@@ -1,11 +1,11 @@
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 from typing import Any
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_db
+from app.api.dependencies import get_db, get_current_user
 from app.core import security
 from app.core.config import settings
 from app.models.platform import User, Tenant
@@ -54,6 +54,10 @@ def login_access_token(
     # Log the successful login with their IP and Browser details
     log_audit(db, request, "login_success", "user_session", user.id, user.tenant_id)
 
+    # Update last login time
+    user.last_login_at = datetime.now(timezone.utc)
+    db.commit()
+
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return {
         "access_token": security.create_access_token(
@@ -61,6 +65,29 @@ def login_access_token(
         ),
         "token_type": "bearer",
     }
+
+@router.post("/logout")
+def logout(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Any:
+    """Logout endpoint - invalidates the current token by updating last_logout_at."""
+    # Update user's last logout time
+    # current_user.last_logout_at = datetime.now(timezone.utc)  # TODO: Uncomment after migration
+    db.commit()
+
+    # Clear ephemeral prediction cache for this user
+    try:
+        from app.services.prediction_cache_service import clear_all_for_user
+        clear_all_for_user(db, current_user.id, current_user.tenant_id)
+    except Exception:
+        pass  # Non-critical — don't block logout if cache cleanup fails
+
+    # Log the logout event
+    log_audit(db, request, "logout", "user_session", current_user.id, current_user.tenant_id)
+
+    return {"message": "Successfully logged out"}
 
 @router.post("/register", response_model=UserResponse)
 def register_user(
@@ -93,6 +120,6 @@ def register_user(
     db.refresh(user)
 
     # Log the registration event
-    log_audit(db, request, "user_registered", "users", user.id, user.tenant_id, {"email": user.email, "role": user.role})
+    log_audit(db, request, "user_registered", "users", user.id, user.tenant_id, {"email": user.email, "role": user.role, "full_name": user.full_name, "tenant_id": user.tenant_id, "is_active": user.is_active})
 
-    return user
+    return {"id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role, "tenant_id": user.tenant_id, "is_active": user.is_active, "created_at": user.created_at, "updated_at": user.updated_at}

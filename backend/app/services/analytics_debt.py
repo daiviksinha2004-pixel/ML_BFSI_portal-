@@ -1,23 +1,35 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case
 from datetime import date
 from typing import Optional
 from app.models.collections import CollectionRecord
 
-def calculate_debt_kpis(db: Session, dataset_month: Optional[date]):
-    """Calculates all KPIs and Chart data for the Debt Collection Dashboard."""
+def calculate_debt_kpis(db: Session, dataset_month: Optional[date], tenant_id):
+    """Calculates all KPIs and Chart data for the Debt Collection Dashboard.
+    Optimized to use a single aggregated query instead of N+1 queries."""
     
-    base_query = db.query(CollectionRecord)
-    pos_query = db.query(func.sum(CollectionRecord.total_pos))
-    bucket_query = db.query(CollectionRecord.bucket, func.count(CollectionRecord.id))
-
+    # Single aggregated query for KPIs
+    aggregated = db.query(
+        func.count().label('total_loans'),
+        func.sum(CollectionRecord.total_pos).label('total_pos'),
+    ).filter(CollectionRecord.tenant_id == tenant_id)
+    
     if dataset_month:
-        base_query = base_query.filter(CollectionRecord.dataset_month == dataset_month)
-        pos_query = pos_query.filter(CollectionRecord.dataset_month == dataset_month)
+        aggregated = aggregated.filter(CollectionRecord.dataset_month == dataset_month)
+    
+    kpi_result = aggregated.first()
+    total_loans = kpi_result.total_loans or 0
+    total_pos = kpi_result.total_pos or 0.0
+    
+    # Separate query for bucket distribution (GROUP BY cannot be combined with simple aggregates)
+    bucket_query = db.query(
+        CollectionRecord.bucket,
+        func.count(CollectionRecord.id).label('count')
+    ).filter(CollectionRecord.tenant_id == tenant_id)
+    
+    if dataset_month:
         bucket_query = bucket_query.filter(CollectionRecord.dataset_month == dataset_month)
-
-    total_loans = base_query.count()
-    total_pos = pos_query.scalar() or 0.0
+    
     bucket_result = bucket_query.group_by(CollectionRecord.bucket).all()
 
     return {

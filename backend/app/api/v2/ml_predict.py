@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel, create_model
@@ -12,6 +12,18 @@ from app.services.ml_models.life_insurance.logistic_predict_v2 import (
 )
 
 router = APIRouter(tags=["ML V2 Prediction"])
+SUPPORTED_LOGISTIC_DOMAIN = "life_insurance"
+
+
+def validate_logistic_domain(domain: str) -> None:
+    if domain != SUPPORTED_LOGISTIC_DOMAIN:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Domain '{domain}' is not supported for logistic-v2 prediction. "
+                f"Supported domain: '{SUPPORTED_LOGISTIC_DOMAIN}'."
+            ),
+        )
 
 
 # =========================================================
@@ -35,8 +47,6 @@ def get_life_payload_model(db: Session):
     import sqlalchemy as sa
     from decimal import Decimal
     from datetime import date
-    from uuid import UUID
-
     def sql_to_py(col_name):
         col_type = col_type_map.get(col_name)
         if col_type is None:
@@ -70,7 +80,15 @@ class PredictResponse(BaseModel):
 
 
 @router.post("/predict/logistic-v2", response_model=PredictResponse)
-def predict_one(payload: dict, db: Session = Depends(get_db)):
+def predict_one(
+    payload: dict,
+    domain: str = Query(
+        SUPPORTED_LOGISTIC_DOMAIN,
+        description="Domain for logistic-v2 prediction. Currently only life_insurance is supported.",
+    ),
+    db: Session = Depends(get_db),
+):
+    validate_logistic_domain(domain)
     # validate against dynamic model
     DynamicModel = get_life_payload_model(db)
     try:
@@ -86,7 +104,15 @@ def predict_one(payload: dict, db: Session = Depends(get_db)):
 
 
 @router.post("/predict/logistic-v2/batch", response_model=List[PredictResponse])
-def predict_many(payload: List[dict], db: Session = Depends(get_db)):
+def predict_many(
+    payload: List[dict],
+    domain: str = Query(
+        SUPPORTED_LOGISTIC_DOMAIN,
+        description="Domain for logistic-v2 prediction. Currently only life_insurance is supported.",
+    ),
+    db: Session = Depends(get_db),
+):
+    validate_logistic_domain(domain)
     if not payload:
         raise HTTPException(status_code=422, detail="Empty payload")
     DynamicModel = get_life_payload_model(db)
@@ -103,8 +129,15 @@ def predict_many(payload: List[dict], db: Session = Depends(get_db)):
 
 
 @router.get("/predict/logistic-v2/schema")
-def get_schema(db: Session = Depends(get_db)):
-    """Returns the current feature schema stored in DB — useful for frontend form generation."""
+def get_schema(
+    domain: str = Query(
+        SUPPORTED_LOGISTIC_DOMAIN,
+        description="Domain for logistic-v2 schema. Currently only life_insurance is supported.",
+    ),
+    db: Session = Depends(get_db),
+):
+    # Returns current feature schema stored in DB for frontend form generation.
+    validate_logistic_domain(domain)
     try:
         return load_schema_from_db(db)
     except ValueError as e:
@@ -112,7 +145,15 @@ def get_schema(db: Session = Depends(get_db)):
 
 
 @router.post("/predict/logistic-v2/debug")
-def debug_one(payload: dict, db: Session = Depends(get_db)):
+def debug_one(
+    payload: dict,
+    domain: str = Query(
+        SUPPORTED_LOGISTIC_DOMAIN,
+        description="Domain for logistic-v2 debug. Currently only life_insurance is supported.",
+    ),
+    db: Session = Depends(get_db),
+):
+    validate_logistic_domain(domain)
     try:
         return debug_payload(payload)
     except Exception as e:

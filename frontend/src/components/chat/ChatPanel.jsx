@@ -1,13 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Bot, User, Loader2 } from 'lucide-react';
 import { useDomain } from '../../context/DomainContext';
+import { useSettings } from '../../context/SettingsContext';
 import api from '../../api';
+
+const GREETING_REGEX = /^(hi|hello|hey|yo|hii+|heyy+)$/i;
 
 const ChatPanel = () => {
   const { theme } = useDomain();
+  const { settings } = useSettings();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'ai', text: "Hello! I'm your Enterprise AI Assistant. Ask me anything about your database in plain English." }
+    { role: 'ai', text: "Hi! What would you like to ask about your data?" }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -24,12 +28,18 @@ const ChatPanel = () => {
     const userText = input.trim();
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: userText }]);
+
+    if (GREETING_REGEX.test(userText)) {
+      setMessages(prev => [...prev, { role: 'ai', text: 'Hi! What would you like to ask about your data?' }]);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       // Make sure this endpoint matches your FastAPI router prefix!
       // If your main.py uses prefix="/api/v1/chat", this should be '/chat/ask'
-      const res = await api.post('/chat/ask', { question: userText });
+      const res = await api.post('/chat/ask', { question: userText, model: settings.groqModel });
       
       setMessages(prev => [...prev, { role: 'ai', text: res.data.answer }]);
     } catch (error) {

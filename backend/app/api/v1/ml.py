@@ -32,7 +32,7 @@ from app.services.ml_debt import (
     DEBT_THRESHOLD_PATH,
     _sanitize_row as _debt_sanitize_row,
     _build_feature_df as _debt_build_feature_df,
-    USEFUL_COLS as DEBT_USEFUL_COLS,
+    QUERY_COLS as DEBT_QUERY_COLS,
 )
 
 logger = logging.getLogger(__name__)
@@ -130,8 +130,7 @@ def _score_single_debt(model, features: list, scaler, threshold: float, raw: dic
     Uses the same feature-engineering pipeline as training (_build_feature_df).
     """
     # Keep only the columns the training pipeline expects
-    clean = {k: raw.get(k) for k in DEBT_USEFUL_COLS}
-    clean = _debt_sanitize_row(clean)
+    clean = _debt_sanitize_row(raw)
 
     # Need a dummy dataset_month so _build_feature_df doesn't crash
     if not clean.get("dataset_month"):
@@ -202,8 +201,7 @@ def _score_batch_debt(
     today_month = str(date.today().replace(day=1))
     clean_rows = []
     for r in payload:
-        clean = {k: r.get(k) for k in DEBT_USEFUL_COLS}
-        clean = _debt_sanitize_row(clean)
+        clean = _debt_sanitize_row(r)
         if not clean.get("dataset_month"):
             clean["dataset_month"] = today_month
         clean_rows.append(clean)

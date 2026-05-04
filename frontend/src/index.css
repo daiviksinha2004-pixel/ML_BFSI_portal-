@@ -2,13 +2,488 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background-color: #f3f4f6; /* A clean, light gray enterprise background */
+/* ═══════════════════════════════════════════════════════════════════════
+   DARK MODE (default) — unchanged
+   ═══════════════════════════════════════════════════════════════════════ */
+html.dark {
+  --surface-base: #0a0a0f;
+  --surface-card: rgba(255,255,255,0.05);
+  --surface-tooltip: rgba(0,0,0,0.90);
+  --text-primary: #ffffff;
+  --text-secondary: #d1d5db;
+  --text-tertiary: #9ca3af;
+  --text-muted: #6b7280;
+  --border-primary: rgba(255,255,255,0.10);
+  --border-subtle: rgba(255,255,255,0.06);
+  --border-active: rgba(255,255,255,0.20);
+  --shadow-card: 0 8px 32px rgba(0,0,0,0.3);
 }
 
-* {
-  -ms-overflow-style: none;     /* IE / Edge */
+/* ═══════════════════════════════════════════════════════════════════════
+   LIGHT MODE — Premium, Cartoon-ish, Playful
+   ═══════════════════════════════════════════════════════════════════════ */
+html.light {
+  --surface-base: #f0f4ff;
+  --surface-card: rgba(255,255,255,0.92);
+  --surface-tooltip: rgba(255,255,255,0.97);
+  --text-primary: #1e293b;
+  --text-secondary: #334155;
+  --text-tertiary: #64748b;
+  --text-muted: #94a3b8;
+  --border-primary: rgba(99,102,241,0.12);
+  --border-subtle: rgba(99,102,241,0.06);
+  --border-active: rgba(99,102,241,0.25);
+  --shadow-card: 0 4px 20px rgba(99,102,241,0.08), 0 1px 4px rgba(0,0,0,0.04);
 }
-*::-webkit-scrollbar {
-  display: none;                /* Chrome / Safari */
+
+body {
+  background-color: var(--surface-base);
+  color: var(--text-primary);
+  transition: background-color 0.5s ease, color 0.3s ease;
+}
+* { -ms-overflow-style: none; }
+*::-webkit-scrollbar { display: none; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LIGHT MODE — GLOBAL CLASS OVERRIDES (only active under html.light)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Kill all dark gradients ─────────────────────────────────────────── */
+html.light .bg-gradient-to-br {
+  background-image: none !important;
+  background-color: var(--surface-base) !important;
+}
+html.light .bg-gradient-to-r.from-transparent.via-white\/20.to-transparent {
+  background-image: linear-gradient(to right, transparent, rgba(99,102,241,0.08), transparent) !important;
+}
+
+/* ── Text color remapping ────────────────────────────────────────────── */
+html.light .text-white        { color: #1e293b !important; }
+html.light .text-gray-200     { color: #334155 !important; }
+html.light .text-gray-300     { color: #475569 !important; }
+html.light .text-gray-400     { color: #64748b !important; }
+html.light .text-gray-500     { color: #94a3b8 !important; }
+html.light .text-gray-600     { color: #94a3b8 !important; }
+html.light .text-indigo-300   { color: #6366f1 !important; }
+html.light .text-indigo-400   { color: #6366f1 !important; }
+
+/* ── EVERY dark surface → light ──────────────────────────────────────── */
+html.light .bg-white\/2       { background-color: rgba(255,255,255,0.6) !important; }
+html.light .bg-white\/3       { background-color: rgba(255,255,255,0.7) !important; }
+html.light .bg-white\/4       { background-color: rgba(255,255,255,0.8) !important; }
+html.light .bg-white\/5       { background-color: rgba(255,255,255,0.90) !important; }
+html.light .bg-white\/8       { background-color: rgba(255,255,255,0.92) !important; }
+html.light .bg-white\/10      { background-color: rgba(99,102,241,0.06) !important; }
+html.light .bg-white\/14      { background-color: rgba(99,102,241,0.08) !important; }
+html.light .bg-white\/20      { background-color: rgba(99,102,241,0.10) !important; }
+
+html.light .bg-black\/10      { background-color: rgba(99,102,241,0.03) !important; }
+html.light .bg-black\/20      { background-color: rgba(241,245,249,0.8) !important; }
+html.light .bg-black\/30      { background-color: rgba(241,245,249,0.92) !important; }
+html.light .bg-black\/40      { background-color: rgba(248,250,252,0.95) !important; }
+html.light .bg-black\/60      { background-color: rgba(248,250,252,0.97) !important; }
+html.light .bg-black\/80      { background-color: rgba(255,255,255,0.97) !important; }
+html.light .bg-black\/90      { background-color: rgba(255,255,255,0.97) !important; }
+
+html.light .bg-gray-700\/50   { background-color: rgba(226,232,240,0.6) !important; }
+html.light .bg-gray-800       { background-color: #e2e8f0 !important; }
+html.light .bg-gray-900       { background-color: #ffffff !important; }
+html.light .bg-gray-950       { background-color: #ffffff !important; }
+html.light .bg-\[\#0A0A0A\]   { background-color: #eef2ff !important; }
+html.light .bg-\[\#0A0A0F\]   { background-color: #eef2ff !important; }
+
+html.light .bg-indigo-500\/20  { background-color: rgba(99,102,241,0.10) !important; }
+html.light .bg-indigo-500\/15  { background-color: rgba(99,102,241,0.08) !important; }
+html.light .bg-purple-500\/10  { background-color: rgba(139,92,246,0.08) !important; }
+html.light .bg-purple-500\/15  { background-color: rgba(139,92,246,0.08) !important; }
+html.light .bg-purple-600\/20  { background-color: rgba(139,92,246,0.06) !important; }
+html.light .bg-teal-500\/10    { background-color: rgba(20,184,166,0.08) !important; }
+html.light .bg-teal-500\/15    { background-color: rgba(20,184,166,0.08) !important; }
+html.light .bg-teal-600\/20    { background-color: rgba(20,184,166,0.06) !important; }
+html.light .bg-red-500\/10     { background-color: rgba(239,68,68,0.06) !important; }
+html.light .bg-emerald-500\/10 { background-color: rgba(16,185,129,0.06) !important; }
+html.light .bg-emerald-500\/5  { background-color: rgba(16,185,129,0.04) !important; }
+
+/* ── Border remapping ────────────────────────────────────────────────── */
+html.light .border-white\/5   { border-color: rgba(99,102,241,0.06) !important; }
+html.light .border-white\/6   { border-color: rgba(99,102,241,0.06) !important; }
+html.light .border-white\/8   { border-color: rgba(99,102,241,0.10) !important; }
+html.light .border-white\/10  { border-color: rgba(99,102,241,0.12) !important; }
+html.light .border-white\/12  { border-color: rgba(99,102,241,0.14) !important; }
+html.light .border-white\/15  { border-color: rgba(99,102,241,0.18) !important; }
+html.light .border-white\/20  { border-color: rgba(99,102,241,0.22) !important; }
+html.light .border-white\/25  { border-color: rgba(99,102,241,0.25) !important; }
+html.light .border-gray-600   { border-color: rgba(99,102,241,0.12) !important; }
+html.light .border-gray-700   { border-color: rgba(99,102,241,0.10) !important; }
+
+/* Domain glassBorder overrides */
+html.light .border-amber-500\/20,
+html.light .border-teal-500\/20,
+html.light .border-emerald-500\/20,
+html.light .border-slate-500\/20 {
+  border-color: rgba(99,102,241,0.10) !important;
+}
+
+/* ── Hover state remapping ───────────────────────────────────────────── */
+html.light .hover\:bg-white\/5:hover   { background-color: rgba(99,102,241,0.04) !important; }
+html.light .hover\:bg-white\/8:hover   { background-color: rgba(99,102,241,0.06) !important; }
+html.light .hover\:bg-white\/10:hover  { background-color: rgba(99,102,241,0.08) !important; }
+html.light .hover\:bg-white\/20:hover  { background-color: rgba(99,102,241,0.10) !important; }
+html.light .hover\:text-white:hover    { color: #1e293b !important; }
+html.light .hover\:border-white\/25:hover  { border-color: rgba(99,102,241,0.25) !important; }
+html.light .hover\:border-gray-400:hover   { border-color: rgba(99,102,241,0.20) !important; }
+html.light .hover\:bg-red-500\/20:hover    { background-color: rgba(239,68,68,0.08) !important; }
+
+/* ── Shadow overrides ────────────────────────────────────────────────── */
+html.light .shadow-2xl  { box-shadow: var(--shadow-card) !important; }
+html.light .shadow-xl   { box-shadow: 0 4px 16px rgba(99,102,241,0.06) !important; }
+html.light .shadow-lg   { box-shadow: 0 2px 12px rgba(99,102,241,0.05) !important; }
+html.light .shadow-inner { box-shadow: inset 0 1px 3px rgba(99,102,241,0.06) !important; }
+html.light .shadow-\[0_0_15px_rgba\(255\,255\,255\,0\.1\)\] {
+  box-shadow: 0 2px 12px rgba(99,102,241,0.12) !important;
+}
+html.light .shadow-\[0_0_30px_rgba\(99\,102\,241\,0\.2\)\] {
+  box-shadow: 0 4px 20px rgba(99,102,241,0.10) !important;
+}
+
+/* ── Tooltip (the black hover cards) → White in light mode ───────────── */
+html.light .rounded-xl.border.bg-black\/90,
+html.light [class*="bg-black/90"].rounded-xl {
+  background-color: rgba(255,255,255,0.97) !important;
+  border-color: rgba(99,102,241,0.12) !important;
+  box-shadow: 0 8px 30px rgba(99,102,241,0.10), 0 2px 8px rgba(0,0,0,0.04) !important;
+}
+html.light .rounded-xl.border.bg-black\/90 .text-white,
+html.light .rounded-xl.border.bg-black\/90 .font-medium.text-white,
+html.light [class*="bg-black/90"] .text-white,
+html.light [class*="bg-black/90"] .font-medium {
+  color: #1e293b !important;
+}
+html.light .rounded-xl.border.bg-black\/90 .text-gray-400 {
+  color: #64748b !important;
+}
+
+/* ── Recharts tooltip fix ────────────────────────────────────────────── */
+html.light .recharts-tooltip-wrapper { filter: none; }
+html.light .recharts-default-tooltip {
+  background-color: rgba(255,255,255,0.97) !important;
+  border-color: rgba(99,102,241,0.12) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 30px rgba(99,102,241,0.10) !important;
+}
+html.light .recharts-default-tooltip .recharts-tooltip-label {
+  color: #1e293b !important;
+}
+html.light .recharts-default-tooltip .recharts-tooltip-item {
+  color: #334155 !important;
+}
+
+/* ── Recharts axis labels fix for light mode ───────────────────────────── */
+html.light .recharts-cartesian-axis-tick-value {
+  fill: #334155 !important;
+}
+html.light .recharts-cartesian-axis-tick-text {
+  fill: #334155 !important;
+}
+html.light .recharts-label {
+  fill: #1e293b !important;
+}
+
+/* ── Recharts legend fix for light mode ───────────────────────────────── */
+html.light .recharts-legend-item-text {
+  color: #334155 !important;
+}
+html.light .recharts-legend-wrapper {
+  color: #334155 !important;
+}
+
+/* ── Custom chart tooltips fix for light mode ─────────────────────────── */
+html.light .rounded-xl.border.border-white\/10.bg-black\/85 {
+  background-color: rgba(255,255,255,0.97) !important;
+  border-color: rgba(99,102,241,0.12) !important;
+  box-shadow: 0 8px 30px rgba(99,102,241,0.10) !important;
+}
+html.light .rounded-xl.border.border-white\/10.bg-black\/85 .text-gray-400 {
+  color: #64748b !important;
+}
+html.light .rounded-xl.border.border-white\/10.bg-black\/85 .text-white {
+  color: #1e293b !important;
+}
+html.light .rounded-xl.border.border-white\/10.bg-black\/85 .border-white\/10 {
+  border-color: rgba(99,102,241,0.10) !important;
+}
+
+/* ── Input fields ────────────────────────────────────────────────────── */
+html.light input[type="text"],
+html.light input[type="password"],
+html.light input[type="date"],
+html.light input[type="month"],
+html.light textarea,
+html.light select {
+  background-color: rgba(255,255,255,0.95) !important;
+  border-color: rgba(99,102,241,0.14) !important;
+  color: #1e293b !important;
+}
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+html.light select option {
+  background-color: #ffffff;
+  color: #1e293b;
+}
+
+/* ── ATS Logo ────────────────────────────────────────────────────────── */
+html.light img[alt="ATS"] {
+  filter: brightness(0) saturate(100%) invert(15%) sepia(10%) saturate(500%) hue-rotate(190deg);
+}
+
+/* ── Loading spinner area ────────────────────────────────────────────── */
+html.light .bg-indigo-500\/20 { background-color: rgba(99,102,241,0.08) !important; }
+html.light .animate-ping { opacity: 0.4; }
+
+/* ── Chat FAB ────────────────────────────────────────────────────────── */
+html.light .fixed.bottom-6.right-6 {
+  background: linear-gradient(135deg, #818cf8, #a78bfa) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 24px rgba(99,102,241,0.30) !important;
+}
+
+/* ── Chat Panel slide-over ───────────────────────────────────────────── */
+html.light .fixed.top-0.right-0.backdrop-blur-3xl {
+  background-color: rgba(255,255,255,0.92) !important;
+  border-color: rgba(99,102,241,0.10) !important;
+}
+
+/* ── Futuristic Date Filter ──────────────────────────────────────────── */
+html.light .fdf-container {
+  background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(238,242,255,0.90)) !important;
+  border-color: rgba(99,102,241,0.14) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+html.light .fdf-container-active { border-color: rgba(99,102,241,0.30) !important; }
+html.light .fdf-date-input {
+  background: rgba(255,255,255,0.95) !important;
+  border-color: rgba(99,102,241,0.14) !important;
+  color: #1e293b !important;
+}
+html.light .fdf-label         { color: #64748b !important; }
+html.light .fdf-calendar-icon { color: #6366f1 !important; }
+html.light .fdf-chevron       { color: #94a3b8 !important; }
+html.light .fdf-clear-btn {
+  background: rgba(239,68,68,0.06) !important;
+  border-color: rgba(239,68,68,0.15) !important;
+  color: #ef4444 !important;
+}
+
+/* ── Disabled states ─────────────────────────────────────────────────── */
+html.light .disabled\:bg-gray-700:disabled { background-color: #e2e8f0 !important; }
+html.light .disabled\:bg-gray-800:disabled { background-color: #e2e8f0 !important; }
+html.light .disabled\:text-gray-500:disabled { color: #94a3b8 !important; }
+html.light .disabled\:text-gray-600:disabled { color: #94a3b8 !important; }
+html.light .disabled\:border-gray-700:disabled { border-color: #cbd5e1 !important; }
+
+/* ── Progress bar track ──────────────────────────────────────────────── */
+html.light .bg-gray-800.rounded-full { background-color: #e2e8f0 !important; }
+
+/* ── Keep colored buttons white text ─────────────────────────────────── */
+html.light .bg-purple-600,
+html.light .bg-purple-500,
+html.light .bg-teal-600,
+html.light .bg-teal-500,
+html.light .bg-red-500,
+html.light .bg-emerald-500 {
+  color: #ffffff !important;
+}
+html.light .bg-purple-600 *,
+html.light .bg-teal-600 *,
+html.light button[class*="bg-purple-600"],
+html.light button[class*="bg-teal-600"] {
+  color: #ffffff !important;
+}
+
+/* ── Orb background ──────────────────────────────────────────────────── */
+html.light .filter.blur-3xl { opacity: 0.3; }
+html.light .blur-\[100px\]  { opacity: 0.2; }
+
+
+/* ── Dashed borders ──────────────────────────────────────────────────── */
+html.light .border-dashed.border-white\/10 {
+  border-color: rgba(99,102,241,0.15) !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LIGHT MODE — CARTOON / PLAYFUL ANIMATIONS (only in light mode)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Bouncy card hover — cards lift and wobble on hover ───────────────── */
+html.light .rounded-3xl {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.35s ease,
+              border-color 0.3s ease !important;
+}
+html.light .rounded-3xl:hover {
+  transform: translateY(-4px) rotate(-0.3deg) !important;
+  box-shadow: 0 12px 32px rgba(99,102,241,0.12), 0 4px 8px rgba(0,0,0,0.04) !important;
+  border-color: rgba(99,102,241,0.20) !important;
+}
+
+/* ── KPI cards get a gentle wobble on hover ───────────────────────────── */
+html.light .rounded-2xl {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s ease !important;
+}
+html.light .rounded-2xl:hover {
+  transform: translateY(-3px) scale(1.01) !important;
+  box-shadow: 0 8px 24px rgba(99,102,241,0.10) !important;
+}
+
+/* ── Sidebar icons get a pop on hover ────────────────────────────────── */
+html.light nav button.rounded-xl {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              background-color 0.25s ease !important;
+}
+html.light nav button.rounded-xl:hover {
+  transform: scale(1.15) !important;
+}
+html.light nav button.rounded-xl:active {
+  transform: scale(0.92) !important;
+}
+
+/* ── Pill buttons get a squish ───────────────────────────────────────── */
+html.light .rounded-full {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+              background-color 0.3s ease,
+              color 0.3s ease,
+              box-shadow 0.3s ease !important;
+}
+html.light button.rounded-full:active {
+  transform: scale(0.93) !important;
+}
+
+/* ── Floating animation for the brand icon ───────────────────────────── */
+@keyframes light-float {
+  0%, 100% { transform: translateY(0px); }
+  50%      { transform: translateY(-4px); }
+}
+html.light nav > .mb-10 {
+  animation: light-float 3s ease-in-out infinite !important;
+}
+
+/* ── Gentle pulse for active page icon ───────────────────────────────── */
+@keyframes light-glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.15); }
+  50%      { box-shadow: 0 0 12px 4px rgba(99,102,241,0.10); }
+}
+html.light nav button.rounded-xl.bg-indigo-50 {
+  animation: light-glow-pulse 2.5s ease-in-out infinite !important;
+}
+
+/* ── Smooth wiggle for chart area on load ─────────────────────────────── */
+@keyframes light-wiggle-in {
+  0%   { opacity: 0; transform: translateY(12px) rotate(-1deg); }
+  60%  { transform: translateY(-2px) rotate(0.5deg); }
+  100% { opacity: 1; transform: translateY(0) rotate(0deg); }
+}
+html.light .animate-fade-in-up {
+  animation: light-wiggle-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both !important;
+}
+
+/* ── Subtle rainbow shimmer on the header border ─────────────────────── */
+@keyframes light-border-shimmer {
+  0%   { border-image: linear-gradient(90deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15), rgba(236,72,153,0.10), rgba(99,102,241,0.15)) 1; }
+  50%  { border-image: linear-gradient(90deg, rgba(236,72,153,0.10), rgba(99,102,241,0.15), rgba(139,92,246,0.15), rgba(236,72,153,0.10)) 1; }
+  100% { border-image: linear-gradient(90deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15), rgba(236,72,153,0.10), rgba(99,102,241,0.15)) 1; }
+}
+html.light header {
+  border-bottom-width: 2px !important;
+  animation: light-border-shimmer 6s linear infinite;
+}
+
+/* ── Confetti-style sparkle dots on content background ────────────────── */
+@keyframes light-sparkle-drift {
+  0%   { transform: translateY(0) scale(1); opacity: 0.4; }
+  50%  { transform: translateY(-8px) scale(1.3); opacity: 0.7; }
+  100% { transform: translateY(0) scale(1); opacity: 0.4; }
+}
+html.light .flex-1.p-8.overflow-y-auto::before {
+  content: '';
+  position: fixed;
+  top: 120px; left: 100px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(99,102,241,0.25);
+  animation: light-sparkle-drift 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+html.light .flex-1.p-8.overflow-y-auto::after {
+  content: '';
+  position: fixed;
+  top: 200px; right: 80px;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: rgba(236,72,153,0.20);
+  animation: light-sparkle-drift 5s ease-in-out 1s infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Playful gradient background + polka dots for light mode body ─────── */
+html.light body {
+  background:
+    radial-gradient(circle, rgba(99,102,241,0.04) 1px, transparent 1px),
+    radial-gradient(circle, rgba(236,72,153,0.03) 1px, transparent 1px),
+    linear-gradient(135deg, #eef2ff 0%, #faf5ff 30%, #f0fdfa 60%, #eef2ff 100%) !important;
+  background-size: 32px 32px, 48px 48px, 100% 100% !important;
+  background-position: 0 0, 16px 16px, 0 0 !important;
+  background-attachment: fixed !important;
+}
+
+/* ── Sidebar light mode — pastel gradient with wavy bottom illusion ──── */
+html.light nav {
+  background: linear-gradient(180deg, rgba(238,242,255,0.95) 0%, rgba(224,231,255,0.90) 100%) !important;
+  border-right: 2px solid rgba(99,102,241,0.10) !important;
+  box-shadow: 4px 0 20px rgba(99,102,241,0.06) !important;
+}
+
+/* ── Header light mode — frosted with subtle pastel tint ─────────────── */
+html.light header {
+  background: linear-gradient(90deg, rgba(238,242,255,0.95), rgba(255,255,255,0.90), rgba(250,245,255,0.95)) !important;
+  border-bottom: 2px solid rgba(99,102,241,0.08) !important;
+  box-shadow: 0 4px 16px rgba(99,102,241,0.05) !important;
+  animation: light-border-shimmer 6s linear infinite;
+}
+
+/* ── Soft rounded corners boost for light mode ───────────────────────── */
+html.light .rounded-3xl { border-radius: 1.5rem !important; }
+html.light .rounded-2xl { border-radius: 1.2rem !important; }
+
+/* ── Light mode — GlassCard gets a subtle pastel border-left accent ─── */
+html.light .relative.backdrop-blur-xl {
+  background: rgba(255,255,255,0.92) !important;
+  border-color: rgba(99,102,241,0.10) !important;
+  box-shadow: 0 4px 20px rgba(99,102,241,0.06), 0 1px 3px rgba(0,0,0,0.03) !important;
+  border-left: 3px solid rgba(99,102,241,0.15) !important;
+}
+
+/* ── Logout button — stay red on hover in light mode ─────────────────── */
+html.light .hover\:text-red-400:hover { color: #ef4444 !important; }
+html.light .hover\:bg-red-500\/10:hover { background-color: rgba(239,68,68,0.06) !important; }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SETTINGS / UTILITY (shared)
+   ═══════════════════════════════════════════════════════════════════════ */
+html.dense .rounded-3xl  { border-radius: 1rem !important; }
+html.dense .p-6          { padding: 0.875rem !important; }
+html.dense .gap-6        { gap: 0.875rem !important; }
+html.dense .mb-6         { margin-bottom: 0.875rem !important; }
+
+html.no-animations *,
+html.no-animations *::before,
+html.no-animations *::after {
+  animation-duration: 0ms !important;
+  transition-duration: 0ms !important;
 }

@@ -1,52 +1,58 @@
 import React from 'react';
 import { DomainProvider, useDomain } from './context/DomainContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { SettingsProvider } from './context/SettingsContext';
+import { ThemeProvider } from './context/ThemeContext';
 import Login from './pages/Login';
 import MainLayout from './components/layout/MainLayout';
-import Dashboard from './pages/Dashboard'; 
+import Dashboard from './pages/Dashboard';
 import AuditLogs from './pages/AuditLogs';
 import Predictions from './pages/Predictions';
 import Ingestion from './pages/Ingestion';
+import Settings from './pages/Settings';
+import PaymentCurveAnalysis from './pages/PaymentCurveAnalysis';
+import PredictionWindow from './pages/PredictionWindow';
 
 const AppRouter = () => {
   const { mainDomain, activePage } = useDomain();
-  
-  // Pull the authentication state directly from our new Context
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, logout } = useAuth();
 
-  // Show nothing while checking localStorage for the token on initial load
-  if (loading) return null; 
+  if (loading) return null;
+  if (!isAuthenticated) return <Login />;
 
-  // THE BOUNCER: If not logged in, force them to the Login page
-  // Notice we don't need 'onLogin' anymore because the context handles it!
-  if (!isAuthenticated) {
-    return <Login />;
-  }
-   // <-- Add this!
-  // If logged in, show the rest of the app wrapped inside the MainLayout
   return (
-    <MainLayout>
-      {mainDomain === 'audit' ? (
-        <AuditLogs />
-      ) : activePage === 'predictions' ? (
-        <Predictions />
+    // SettingsProvider needs logout to fire on idle — lives inside AuthProvider
+    <SettingsProvider onIdleTimeout={logout}>
+      <MainLayout>
+        {mainDomain === 'audit' ? (
+          <AuditLogs />
+        ) : activePage === 'predictions' ? (
+          <Predictions />
         ) : activePage === 'ingestion' ? (
           <Ingestion />
-      ) : (
-        <Dashboard />
-      )}
-    </MainLayout>
+        ) : activePage === 'payment_curve' ? (
+          <PaymentCurveAnalysis />
+        ) : activePage === 'prediction_window' ? (
+          <PredictionWindow />
+        ) : activePage === 'settings' ? (
+          <Settings />
+        ) : (
+          <Dashboard />
+        )}
+      </MainLayout>
+    </SettingsProvider>
   );
 };
 
 function App() {
   return (
-    // We wrap the entire app in AuthProvider FIRST so it controls access
-    <AuthProvider>
-      <DomainProvider>
-        <AppRouter />
-      </DomainProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <DomainProvider>
+          <AppRouter />
+        </DomainProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

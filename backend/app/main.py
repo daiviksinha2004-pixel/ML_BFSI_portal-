@@ -10,7 +10,8 @@ from app.core.config import settings
 # Single import — triggers all model registrations via __init__.py
 import app.models  # noqa
 
-from app.api.v1 import auth, ingest, analytics, ml, chat, audit
+from app.api.v1 import auth, ingest, analytics, ml, chat, audit, kpi_life, kpi_debt, life_charts, payment_curve, predictions
+from app.api.routes import prediction, channel_prediction, product_type_prediction, combined_prediction
 from app.api.v2 import ml as ml_v2
 from app.api.v2.ml_predict import router as v2_ml_predict_router
 
@@ -49,6 +50,15 @@ app.add_middleware(
 app.include_router(auth.router,      prefix=f"{settings.API_V1_STR}/auth",      tags=["auth"])
 app.include_router(ingest.router,    prefix=f"{settings.API_V1_STR}/ingest",    tags=["ingestion"])
 app.include_router(analytics.router, prefix=f"{settings.API_V1_STR}/analytics", tags=["analytics"])
+app.include_router(kpi_life.router,  prefix=f"{settings.API_V1_STR}/life-kpis", tags=["life-kpis"])
+app.include_router(kpi_debt.router,  prefix=f"{settings.API_V1_STR}/debt-kpis", tags=["debt-kpis"])
+app.include_router(life_charts.router, prefix=f"{settings.API_V1_STR}/life-charts", tags=["life-charts"])
+app.include_router(payment_curve.router, prefix=f"{settings.API_V1_STR}/payment-curve", tags=["payment-curve"])
+app.include_router(predictions.router, prefix=f"{settings.API_V1_STR}/predictions", tags=["predictions"])
+app.include_router(prediction.router,  prefix="/api/v1/prediction", tags=["Prediction"])
+app.include_router(channel_prediction.router,  prefix="/api/v1/channel-prediction", tags=["Channel Prediction"])
+app.include_router(product_type_prediction.router,  prefix="/api/v1/product-type-prediction", tags=["Product Type Prediction"])
+app.include_router(combined_prediction.router,       prefix="/api/v1/combined-prediction",     tags=["Combined Prediction"])
 app.include_router(ml.router,        prefix=f"{settings.API_V1_STR}/ml",        tags=["machine_learning"])
 app.include_router(chat.router,      prefix=f"{settings.API_V1_STR}/chat",      tags=["chatbot"])
 app.include_router(audit.router,     prefix=f"{settings.API_V1_STR}/audit",     tags=["audit"])

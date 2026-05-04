@@ -1,0 +1,138 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   LIGHT MODE DECORATIONS — Cartoon floating elements
+   Only active in light mode via parent conditional rendering.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Container — covers content area, pointer-events-none ────────────── */
+.lmd-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* ── Clouds — gentle horizontal drift ────────────────────────────────── */
+.lmd-cloud {
+  position: absolute;
+  opacity: 0.6;
+  filter: drop-shadow(0 2px 4px rgba(99,102,241,0.06));
+}
+
+@keyframes lmd-float-x {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  25%      { transform: translateX(15px) translateY(-3px); }
+  50%      { transform: translateX(30px) translateY(0); }
+  75%      { transform: translateX(15px) translateY(3px); }
+}
+
+.lmd-float-1 { animation: lmd-float-x 20s ease-in-out infinite; }
+.lmd-float-2 { animation: lmd-float-x 25s ease-in-out 3s infinite; }
+.lmd-float-3 { animation: lmd-float-x 22s ease-in-out 7s infinite; }
+
+/* ── Stars — twinkle (scale + opacity) ───────────────────────────────── */
+.lmd-star {
+  position: absolute;
+  opacity: 0.5;
+}
+
+@keyframes lmd-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8) rotate(0deg); }
+  50%      { opacity: 0.7; transform: scale(1.2) rotate(20deg); }
+}
+
+.lmd-twinkle-1 { animation: lmd-twinkle 3s ease-in-out infinite; }
+.lmd-twinkle-2 { animation: lmd-twinkle 4s ease-in-out 1s infinite; }
+.lmd-twinkle-3 { animation: lmd-twinkle 3.5s ease-in-out 2s infinite; }
+
+/* ── Hearts — gentle rise-and-fall drift ─────────────────────────────── */
+.lmd-heart {
+  position: absolute;
+  opacity: 0.4;
+}
+
+@keyframes lmd-drift-up {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.3; }
+  50%      { transform: translateY(-12px) rotate(10deg); opacity: 0.6; }
+}
+
+.lmd-drift-1 { animation: lmd-drift-up 5s ease-in-out infinite; }
+.lmd-drift-2 { animation: lmd-drift-up 6s ease-in-out 2s infinite; }
+
+/* ── Sparkles — quick scale pulse ────────────────────────────────────── */
+.lmd-sparkle {
+  position: absolute;
+  opacity: 0.4;
+}
+
+@keyframes lmd-sparkle-pulse {
+  0%, 100% { transform: scale(0.7) rotate(0deg); opacity: 0.2; }
+  50%      { transform: scale(1.3) rotate(45deg); opacity: 0.5; }
+}
+
+.lmd-sparkle {
+  animation: lmd-sparkle-pulse 2.5s ease-in-out infinite;
+}
+
+.lmd-sparkle:nth-child(10) { animation-delay: 0.5s; }
+.lmd-sparkle:nth-child(11) { animation-delay: 1.0s; }
+.lmd-sparkle:nth-child(12) { animation-delay: 1.5s; }
+
+/* ── Mascot ──────────────────────────────────────────────────────────── */
+.lmd-mascot-wrapper {
+  position: fixed;
+  bottom: 24px;
+  left: 100px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  z-index: 50;
+  pointer-events: none;
+  animation: lmd-mascot-enter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes lmd-mascot-enter {
+  0%   { opacity: 0; transform: translateY(40px) scale(0.5) rotate(-10deg); }
+  60%  { transform: translateY(-8px) scale(1.05) rotate(3deg); }
+  100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+}
+
+.lmd-mascot {
+  width: 64px;
+  height: 80px;
+  filter: drop-shadow(0 4px 12px rgba(99,102,241,0.15));
+  animation: lmd-mascot-bounce 2s ease-in-out 0.6s infinite;
+}
+
+@keyframes lmd-mascot-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+.lmd-mascot-antenna {
+  animation: lmd-antenna-glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes lmd-antenna-glow {
+  0%   { fill: #818cf8; filter: none; }
+  100% { fill: #a78bfa; filter: drop-shadow(0 0 4px rgba(139,92,246,0.5)); }
+}
+
+/* Speech bubble */
+.lmd-mascot-speech {
+  background: white;
+  border: 1.5px solid rgba(99,102,241,0.15);
+  border-radius: 14px 14px 14px 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6366f1;
+  box-shadow: 0 4px 16px rgba(99,102,241,0.10);
+  animation: lmd-speech-enter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s both;
+  white-space: nowrap;
+}
+
+@keyframes lmd-speech-enter {
+  0%   { opacity: 0; transform: scale(0.5) translateX(-10px); }
+  100% { opacity: 1; transform: scale(1) translateX(0); }
+}

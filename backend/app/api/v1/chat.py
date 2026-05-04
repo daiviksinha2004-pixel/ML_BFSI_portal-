@@ -13,12 +13,13 @@ def chat_with_data(request: ChatRequest):
     """
     Endpoint for the frontend chatbot UI. Accepts a question and returns the AI's answer.
     """
-    if not request.question:
+    cleaned_question = (request.question or "").strip()
+    if not cleaned_question:
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
-        
-    answer = ask_database_question(request.question)
+
+    answer = ask_database_question(cleaned_question)
     
     return {
-        "question": request.question,
+        "question": cleaned_question,
         "answer": answer
     }

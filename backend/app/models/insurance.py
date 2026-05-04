@@ -55,6 +55,7 @@ class InsuranceRecordMixin:
 
     # ── Propensity & campaign bucketing ─────────────────────────
     propensity_band = Column(String(20))
+    propensity = Column(String(50), nullable=True)
     ptd_slab = Column(String(15))
     client_bucket = Column(String(20))
     priority_bucket = Column(String(50))

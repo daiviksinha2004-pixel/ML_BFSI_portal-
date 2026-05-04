@@ -1,162 +1,305 @@
 import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Activity, DollarSign, Users, AlertTriangle } from 'lucide-react';
+import { Activity, IndianRupee, Users, AlertTriangle, Calendar, Database } from 'lucide-react';
 import { useDomain } from '../context/DomainContext';
 import GlassCard from '../components/ui/GlassCard';
+import FuturisticDateFilter from '../components/ui/FuturisticDateFilter';
+import LifePaymentRateByPropensityChart from '../components/charts/LifePaymentRateByPropensityChart';
+import LifePaymentRateByTopChannelsChart from '../components/charts/LifePaymentRateByTopChannelsChart';
+import LifePolicyStatusDistributionChart from '../components/charts/LifePolicyStatusDistributionChart';
+import LifeOutstandingVsActualPremiumByBandChart from '../components/charts/LifeOutstandingVsActualPremiumByBandChart';
+import LifePaymentRateByZoneChart from '../components/charts/LifePaymentRateByZoneChart';
+import LifePolicyStatusByPmtFlagChart from '../components/charts/LifePolicyStatusByPmtFlagChart';
+import LifeGeographicalHeatmapChart from '../components/charts/LifeGeographicalHeatmapChart';
+import SourcingChannelPerformanceChart from '../components/charts/SourcingChannelPerformanceChart';
 import api from '../api';
 
+const LifeKpiCard = ({ title, data, colorClass = "text-white" }) => (
+  <GlassCard title={title} className="p-5 h-[140px] flex flex-col items-center justify-center transition-transform hover:-translate-y-1 duration-300">
+    <div className={`text-3xl font-light tracking-tight leading-none ${colorClass}`}>
+      {data?.label_primary || '-'}
+    </div>
+    <div className="text-xs text-gray-400 mt-1.5">
+      {data?.label_subtitle || '-'}
+    </div>
+  </GlassCard>
+);
+
+const DebtKpiCard = ({ title, data, colorClass = "text-white" }) => (
+  <GlassCard title={title} className="p-5 h-[140px] flex flex-col items-center justify-center transition-transform hover:-translate-y-1 duration-300">
+    <div className={`text-3xl font-light tracking-tight leading-none ${colorClass}`}>
+      {data?.label_primary || '-'}
+    </div>
+    <div className="text-xs text-gray-400 mt-1.5">
+      {data?.label_subtitle || '-'}
+    </div>
+  </GlassCard>
+);
+
+/* DateRangePicker replaced with FuturisticDateFilter component */
+
 const Dashboard = () => {
-  // 1. Bring in the Context and the Loading state!
-  const { mainDomain, subDomain, theme } = useDomain();
+  const { mainDomain, subDomain } = useDomain();
   const [loading, setLoading] = useState(true);
-  
-  // 2. Initialize our dynamic states
-  const [kpiData, setKpiData] = useState({ totalRecords: 0, totalOutstanding: 0 });
-  const [trendData, setTrendData] = useState([]);
-  const [pieData, setPieData] = useState([]);
+
+  // States for Debt
+  const [debtKpiData, setDebtKpiData] = useState(null);
+  const [debtSelectedDate, setDebtSelectedDate] = useState('');
+
+  // State for Life (New 8-Grid Layout)
+  const [lifeKpiData, setLifeKpiData] = useState(null);
+  const [paymentOutstandingPct, setPaymentOutstandingPct] = useState(null);
+  const [lifePaymentRateChartData, setLifePaymentRateChartData] = useState([]);
+  const [lifeTopChannelsChartData, setLifeTopChannelsChartData] = useState([]);
+  const [lifePolicyStatusChartData, setLifePolicyStatusChartData] = useState([]);
+  const [lifePremiumBandChartData, setLifePremiumBandChartData] = useState([]);
+  const [lifeZoneChartData, setLifeZoneChartData] = useState([]);
+  const [lifePolicyStatusByPmtChartData, setLifePolicyStatusByPmtChartData] = useState([]);
+  const [lifeGeographicalHeatmapData, setLifeGeographicalHeatmapData] = useState([]);
+  const [sourcingChannelData, setSourcingChannelData] = useState([]);
+  const [pmtFilter, setPmtFilter] = useState('all');
+
+  // Filters
+  const [selectedDate, setSelectedDate] = useState('');
+  const [heatmapPropensity, setHeatmapPropensity] = useState('');
 
   const getBackendDomainString = () => {
     if (mainDomain === 'debt') return 'debt_collection';
     if (mainDomain === 'life_health') {
       return subDomain === 'life' ? 'life_insurance' : 'health_insurance';
     }
-    return 'audit'; 
+    return 'audit';
   };
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       setLoading(true);
-      const backendDomain = getBackendDomainString();
-      
+
       try {
-        // 3. Fetch BOTH the summary numbers and the chart arrays simultaneously
-        const [summaryRes, chartsRes] = await Promise.all([
-          api.get(`/analytics/summary/${backendDomain}`),
-          api.get(`/analytics/charts/${backendDomain}`)
-        ]);
+        if (mainDomain === 'life_health' && subDomain === 'life') {
+          const requestConfig = selectedDate
+            ? { params: { dataset_month: `${selectedDate}-01` } }
+            : undefined;
 
-        // Set the top KPI numbers
-        setKpiData({
-          totalRecords: summaryRes.data.total_records || 0,
-          totalOutstanding: summaryRes.data.total_outstanding_premium || summaryRes.data.total_pos || 0,
-        });
+          const heatmapRequestConfig = {
+            params: { 
+              ...(selectedDate ? { dataset_month: `${selectedDate}-01` } : {}),
+              ...(heatmapPropensity ? { propensity: heatmapPropensity } : {})
+            }
+          };
 
-        // Set the Trend Chart Data
-        if (chartsRes.data.trend && chartsRes.data.trend.length > 0) {
-          setTrendData(chartsRes.data.trend);
-        } else {
-          setTrendData([{ month: 'No Data', amount: 0 }]);
+          const [kpiRes, paymentOutstandingRes, paymentChartRes, topChannelsChartRes, policyStatusChartRes, zoneChartRes, premiumBandChartRes, policyStatusByPmtRes, geoHeatmapRes, sourcingChannelRes] = await Promise.all([
+            api.get('/life-kpis/', requestConfig),
+            api.get('/life-kpis/payment-outstanding-pct', requestConfig),
+            api.get('/life-charts/payment-rate-by-propensity', requestConfig),
+            api.get('/life-charts/payment-rate-by-top-channels', requestConfig),
+            api.get('/life-charts/policy-status-distribution', requestConfig),
+            api.get('/life-charts/payment-rate-by-zone', requestConfig),
+            api.get('/life-charts/outstanding-vs-actual-premium-by-band', requestConfig),
+            api.get('/payment-curve/policy-status-by-pmt-flag', requestConfig),
+            api.get('/payment-curve/geographical-heatmap', heatmapRequestConfig),
+            api.get('/analytics/life_insurance/sourcing-channel-performance', {
+              params: {
+                ...(selectedDate ? { dataset_month: `${selectedDate}-01` } : {}),
+                pmt_filter: pmtFilter
+              }
+            }),
+          ]);
+
+          setLifeKpiData(kpiRes.data);
+          setPaymentOutstandingPct(paymentOutstandingRes.data);
+          setLifePaymentRateChartData(paymentChartRes.data.series || []);
+          setLifeTopChannelsChartData(topChannelsChartRes.data.series || []);
+          setLifePolicyStatusChartData(policyStatusChartRes.data.series || []);
+          setLifeZoneChartData(zoneChartRes.data.series || []);
+          setLifePremiumBandChartData(premiumBandChartRes.data.series || []);
+          setLifePolicyStatusByPmtChartData(policyStatusByPmtRes.data.series || []);
+          setLifeGeographicalHeatmapData(geoHeatmapRes.data.series || []);
+          setSourcingChannelData(sourcingChannelRes.data.data || []);
+        } else if (mainDomain === 'debt') {
+          const requestConfig = debtSelectedDate
+            ? { params: { dataset_month: `${debtSelectedDate}-01` } }
+            : undefined;
+
+          const kpiRes = await api.get('/debt-kpis/', requestConfig);
+          setDebtKpiData(kpiRes.data);
         }
-
-        // Set the Donut Chart Data
-        if (chartsRes.data.pie && chartsRes.data.pie.length > 0) {
-          setPieData(chartsRes.data.pie);
-        } else {
-          setPieData([{ name: 'No Data', value: 1 }]);
-        }
-
       } catch (error) {
         console.error("Failed to fetch data:", error);
-        // Fallbacks so the UI doesn't crash on an API error
-        setKpiData({ totalRecords: 0, totalOutstanding: 0 });
-        setTrendData([{ month: 'Error', amount: 0 }]);
-        setPieData([{ name: 'Error', value: 1 }]);
+        setDebtKpiData(null);
+        setLifeKpiData(null);
+        setLifePaymentRateChartData([]);
+        setLifeTopChannelsChartData([]);
+        setLifePolicyStatusChartData([]);
+        setLifePremiumBandChartData([]);
+        setLifeZoneChartData([]);
       } finally {
         setLoading(false);
       }
     };
 
-    if (mainDomain !== 'audit') {
+    if (mainDomain === 'life_health' && subDomain === 'life') {
+      fetchDashboardData();
+    } else if (mainDomain === 'debt') {
       fetchDashboardData();
     } else {
       setLoading(false);
     }
-  }, [mainDomain, subDomain]);
-  
-  // Dynamic Chart Colors
-  const CHART_COLORS = mainDomain === 'life_health' ? ['#2dd4bf', '#0f766e', '#134e4a', '#042f2e'] : ['#fbbf24', '#b45309', '#78350f', '#451a03'];
-  const primaryChartColor = mainDomain === 'debt' ? '#fbbf24' : '#2dd4bf'; 
+  }, [mainDomain, subDomain, selectedDate, debtSelectedDate, heatmapPropensity, pmtFilter]);
+
+  const CHART_COLORS = ['#fbbf24', '#b45309', '#78350f', '#451a03'];
+  const primaryChartColor = '#fbbf24';
 
   if (loading) {
-    return <div className="h-full flex items-center justify-center animate-pulse text-gray-400 tracking-widest">SYNCING DATA...</div>;
+    return (
+      <div className="flex h-[70vh] flex-col items-center justify-center gap-8 animate-fade-in-up">
+        <div className="relative flex items-center justify-center">
+          {/* Outer rotating ring */}
+          <div className="absolute h-28 w-28 animate-[spin_3s_linear_infinite] rounded-full border border-transparent border-t-indigo-500/80 border-r-purple-500/50 border-b-teal-500/30 opacity-80"></div>
+          {/* Inner reverse rotating ring */}
+          <div className="absolute h-20 w-20 animate-[spin_4s_linear_infinite_reverse] rounded-full border border-transparent border-t-teal-400/80 border-l-indigo-400/50 opacity-60"></div>
+          {/* Center pulsing glow */}
+          <div className="absolute h-16 w-16 animate-ping rounded-full bg-indigo-500/20 duration-1000"></div>
+          {/* Center Icon */}
+          <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-black/60 border border-white/10 backdrop-blur-md shadow-[0_0_30px_rgba(99,102,241,0.2)]">
+            <Database size={22} className="text-indigo-300 animate-pulse" />
+          </div>
+        </div>
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="bg-gradient-to-r from-indigo-300 via-purple-300 to-indigo-300 bg-clip-text text-xs font-bold tracking-[0.3em] text-transparent animate-pulse">
+            SYNCING DATA
+          </div>
+          <div className="text-[10px] uppercase tracking-[0.1em] text-gray-500">
+            Establishing secure connection
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  return (
-    <div className="flex flex-col gap-6 h-full pb-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <GlassCard title="Total Portfolio Value" subtitle="Active outstanding balance" icon={DollarSign}>
-          <div className="text-4xl font-light text-white">
-            ${kpiData.totalOutstanding.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-          </div>
-        </GlassCard>
-        
-        <GlassCard title="Active Customers" subtitle="Total accounts in database" icon={Users}>
-          <div className="text-4xl font-light text-white">
-            {kpiData.totalRecords.toLocaleString()}
-          </div>
-        </GlassCard>
-
-        <GlassCard title="AI Risk Alert" subtitle="High propensity accounts" icon={AlertTriangle} className="border-red-500/30">
-          <div className="text-4xl font-light text-red-400">
-            0<span className="text-sm text-gray-400">accounts</span>
-          </div>
-        </GlassCard>
+  // ─── HEALTH INSURANCE LAYOUT ───────────────────────────────────────────────
+  if (mainDomain === 'life_health' && subDomain === 'health') {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] animate-fade-in-up">
+        <div className="text-center">
+          <Activity size={48} className="text-gray-500 mx-auto mb-4 opacity-50" />
+          <h2 className="text-xl font-light text-gray-400 mb-2">Health Insurance Dashboard</h2>
+          <p className="text-sm text-gray-600">KPIs and charts will be added here in future updates.</p>
+        </div>
       </div>
+    );
+  }
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-[300px]">
-        <GlassCard title="Collection & Payment Trends" subtitle="Month over month performance" icon={Activity} className="lg:col-span-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={primaryChartColor} stopOpacity={0.4}/>
-                  <stop offset="95%" stopColor={primaryChartColor} stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-              <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value/1000}k`} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                itemStyle={{ color: '#fff' }}
-              />
-              <Area type="monotone" dataKey="amount" stroke={primaryChartColor} strokeWidth={3} fillOpacity={1} fill="url(#colorAmount)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </GlassCard>
+  // ─── LIFE INSURANCE LAYOUT ───────────────────────────────────────────────
+  if (mainDomain === 'life_health' && subDomain === 'life' && lifeKpiData) {
+    return (
+      <div className="flex flex-col gap-5 pb-6 max-w-7xl mx-auto w-full animate-fade-in-up">
 
-        <GlassCard title="AI Propensity Bands" subtitle="Predicted payment behavior">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={90}
-                paddingAngle={5}
-                dataKey="value"
-                stroke="none"
-              >
-                {pieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip 
-                contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                itemStyle={{ color: '#fff' }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="flex justify-center gap-4 mt-2 flex-wrap">
-            {pieData.map((entry, index) => (
-              <div key={entry.name} className="flex items-center gap-2 text-xs text-gray-400">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}></div>
-                {entry.name}
-              </div>
-            ))}
+        {/* Header Ribbon with Date Picker */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 border-b border-white/10 pb-4 mt-2">
+          <div className="text-gray-400 text-[11px] tracking-widest font-semibold uppercase shrink-0">
+            {lifeKpiData.header}
           </div>
-        </GlassCard>
+          <FuturisticDateFilter
+            selectedDate={selectedDate}
+            onSelect={setSelectedDate}
+            label="Period"
+          />
+        </div>
+
+        {/* 8-Grid Metric Blocks */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <LifeKpiCard title="Total Policies" data={lifeKpiData.total_policies} colorClass="text-white" />
+          <LifeKpiCard title="Total outstanding premium" data={lifeKpiData.total_outstanding_premium} colorClass="text-white" />
+          <LifeKpiCard title="Payment rate (PMT Flag)" data={lifeKpiData.payment_rate_pmt} colorClass="text-[#34d399]" />
+          <LifeKpiCard title="Payment Outstanding %" data={paymentOutstandingPct} colorClass="text-[#4ade80]" />
+          <LifeKpiCard title="Policy count (PMT Flag)" data={lifeKpiData.policy_count_pmt} colorClass="text-white" />
+          <LifeKpiCard title="Amount collected (PMT Flag)" data={lifeKpiData.amount_collected_pmt} colorClass="text-[#4ade80]" />
+          <LifeKpiCard title="Outstanding Premium (Unpaid Flag)" data={lifeKpiData.outstanding_pmt} colorClass="text-[#ef4444]" />
+          <LifeKpiCard title="Avg lapse ageing (days)" data={lifeKpiData.avg_lapse_ageing} colorClass="text-[#f59e0b]" />
+          <LifeKpiCard title="Interest charged (total)" data={lifeKpiData.total_interest_charged} colorClass="text-[#ef4444]" />
+          <LifeKpiCard title="Avg policy ageing" data={lifeKpiData.avg_policy_ageing} colorClass="text-white" />
+          <LifeKpiCard title="High propensity (A.HIGH)" data={lifeKpiData.high_propensity} colorClass="text-[#4ade80]" />
+          <LifeKpiCard title="Grace bucket policies" data={lifeKpiData.grace_bucket} colorClass="text-white" />
+        </div>
+
+        <LifePaymentRateByPropensityChart data={lifePaymentRateChartData} />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="w-full">
+            <LifePolicyStatusDistributionChart data={lifePolicyStatusChartData} />
+          </div>
+          <div className="w-full">
+            <LifePaymentRateByTopChannelsChart data={lifeTopChannelsChartData} />
+          </div>
+        </div>
+
+        <LifePaymentRateByZoneChart data={lifeZoneChartData} />
+
+        <LifeOutstandingVsActualPremiumByBandChart data={lifePremiumBandChartData} />
+
+        <SourcingChannelPerformanceChart 
+          data={sourcingChannelData} 
+          pmtFilter={pmtFilter}
+          onPmtFilterChange={setPmtFilter}
+        />
+
+        <LifePolicyStatusByPmtFlagChart data={lifePolicyStatusByPmtChartData} />
+
+        {/* State Map Heatmap with Propensity Filter */}
+        <div className="relative">
+          <div className="absolute top-4 right-4 z-20">
+            <select
+              value={heatmapPropensity}
+              onChange={(e) => setHeatmapPropensity(e.target.value)}
+              className="bg-black/40 border border-white/10 text-white text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500/50 backdrop-blur-md appearance-none"
+            >
+              <option value="">All Propensities</option>
+              <option value="A.HIGH">High Propensity</option>
+              <option value="B.MEDIUM">Medium Propensity</option>
+              <option value="C.LOW">Low Propensity</option>
+            </select>
+          </div>
+          <LifeGeographicalHeatmapChart data={lifeGeographicalHeatmapData} />
+        </div>
+      </div>
+    );
+  }
+
+  // ─── DEBT COLLECTION LAYOUT ───────────────────────────────────────────────
+  if (mainDomain === 'debt' && debtKpiData) {
+    return (
+      <div className="flex flex-col gap-5 pb-6 max-w-7xl mx-auto w-full animate-fade-in-up">
+
+        {/* Header Ribbon with Date Picker */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 border-b border-white/10 pb-4 mt-2">
+          <div className="text-gray-400 text-[11px] tracking-widest font-semibold uppercase shrink-0">
+            {debtKpiData.header}
+          </div>
+          <FuturisticDateFilter
+            selectedDate={debtSelectedDate}
+            onSelect={setDebtSelectedDate}
+            label="Period"
+          />
+        </div>
+
+        {/* KPI Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <DebtKpiCard title="Total Loans" data={debtKpiData.total_loans} colorClass="text-white" />
+          <DebtKpiCard title="Total Outstanding Portfolio" data={debtKpiData.total_outstanding_portfolio} colorClass="text-[#fbbf24]" />
+          <DebtKpiCard title="Total Outstanding EMI" data={debtKpiData.total_outstanding_emi} colorClass="text-[#ef4444]" />
+        </div>
+      </div>
+    );
+  }
+
+  // ─── DEBT COLLECTION EMPTY STATE ───────────────────────────────────────────
+  return (
+    <div className="flex flex-col items-center justify-center h-[60vh] animate-fade-in-up">
+      <div className="text-center">
+        <Activity size={48} className="text-gray-500 mx-auto mb-4 opacity-50" />
+        <h2 className="text-xl font-light text-gray-400 mb-2">Debt Collection Dashboard</h2>
+        <p className="text-sm text-gray-600">No data available. Upload data to view KPIs.</p>
       </div>
     </div>
   );

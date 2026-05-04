@@ -31,6 +31,7 @@ class User(Base):
     failed_logins = Column(Integer, nullable=False, default=0)
     locked_until = Column(DateTime(timezone=True))
     last_login_at = Column(DateTime(timezone=True))
+    # last_logout_at = Column(DateTime(timezone=True))  # TODO: Add migration
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

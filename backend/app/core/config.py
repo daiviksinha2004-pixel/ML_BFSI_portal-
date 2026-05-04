@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # Security Settings
     SECRET_KEY: str
     ALGORITHM: str
-    ACCESS_TOKEN_EXPIRE_MINUTES: int
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 525600  # 1 year (365 days * 24 hours * 60 minutes)
 
     # --- AI Settings ---
     OPENAI_API_KEY: str | None = None

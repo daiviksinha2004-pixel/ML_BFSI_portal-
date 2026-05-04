@@ -3,17 +3,32 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
   PieChart, Pie, Cell, RadarChart, PolarGrid,
-  PolarAngleAxis, Radar,
+  PolarAngleAxis, Radar, LineChart, Line, AreaChart, Area,
 } from 'recharts';
 import {
   BrainCircuit, Target, Database, Activity, Play,
   ShieldCheck, TrendingUp, AlertTriangle,
   CheckCircle2, XCircle, Cpu, RefreshCw,
-  Clock, GitBranch, Sigma,
+  Clock, GitBranch, Sigma, Calendar, DollarSign,
+  BarChart3, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import { useDomain } from '../context/DomainContext';
 import api, { apiV2 } from '../api';
+
+const PREDICTION_SCOPES = {
+  LIFE: 'life_insurance',
+  HEALTH: 'health_insurance',
+  DEBT: 'debt_collection',
+};
+
+const getPredictionScope = (mainDomain, subDomain) => {
+  if (mainDomain === 'debt') return PREDICTION_SCOPES.DEBT;
+  if (mainDomain === 'life_health') {
+    return subDomain === 'health' ? PREDICTION_SCOPES.HEALTH : PREDICTION_SCOPES.LIFE;
+  }
+  return PREDICTION_SCOPES.LIFE;
+};
 
 // ─────────────────────────────────────────────
 // NORMALISE HELPERS
@@ -357,7 +372,7 @@ const EmptyState = ({ icon: Icon, label, color }) => (
 // ─────────────────────────────────────────────
 // ① RANDOM FOREST  (V1)
 // ─────────────────────────────────────────────
-const RandomForestSection = ({ mainDomain, theme }) => {
+const RandomForestSection = ({ scope }) => {
   const [testMonth, setTestMonth] = useState('2025-12-01');
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState(null);
@@ -365,10 +380,19 @@ const RandomForestSection = ({ mainDomain, theme }) => {
   const [lastRun, setLastRun]     = useState(null);
 
   const handleRun = async () => {
+    const endpointMap = {
+      [PREDICTION_SCOPES.LIFE]: '/ml/train/life-insurance',
+      [PREDICTION_SCOPES.DEBT]: '/ml/train/debt-collection',
+    };
+    const endpoint = endpointMap[scope];
+    if (!endpoint) {
+      setError('Random Forest is not configured for this domain yet.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
-    const endpoint = mainDomain === 'debt' ? '/ml/train/debt-collection' : '/ml/train/life-insurance';
     try {
       // api.baseURL = http://localhost:8080/api/v1  →  hits /api/v1/ml/train/life-insurance
       const { data } = await api.post(endpoint, null, { params: { test_month: testMonth } });
@@ -382,7 +406,10 @@ const RandomForestSection = ({ mainDomain, theme }) => {
     }
   };
 
-  const colors = { success: theme?.isLife ? '#2dd4bf' : '#fbbf24', fail: '#f87171' };
+  const colors = {
+    success: scope === PREDICTION_SCOPES.DEBT ? '#fbbf24' : '#2dd4bf',
+    fail: '#f87171',
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -427,9 +454,252 @@ const RandomForestSection = ({ mainDomain, theme }) => {
 };
 
 // ─────────────────────────────────────────────
+// ③ LAPSE FORECAST (KPI Forecasting)
+// ─────────────────────────────────────────────
+const LapseForecastSection = () => {
+  const [targetMonth, setTargetMonth] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    return d.toISOString().slice(0, 7);
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [forecastData, setForecastData] = useState(null);
+  const [lastRun, setLastRun] = useState(null);
+
+  const token = localStorage.getItem('access_token');
+  const authHeader = { Authorization: `Bearer ${token}` };
+
+  const handleRunForecast = async () => {
+    setLoading(true);
+    setError(null);
+    setForecastData(null);
+    try {
+      const { data } = await api.post('/predictions/lapse-forecast', {
+        target_month: targetMonth,
+      }, { headers: authHeader });
+      setForecastData(data);
+      setLastRun(new Date().toLocaleTimeString());
+    } catch (err) {
+      setError(err.response?.data?.detail ?? err.message ?? 'Failed to generate forecast.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (value) => {
+    if (value == null || isNaN(value)) return '₹0';
+    if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)}Cr`;
+    if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
+    if (value >= 1000) return `₹${(value / 1000).toFixed(1)}K`;
+    return `₹${value.toFixed(0)}`;
+  };
+
+  const formatCount = (value) => {
+    if (value == null || isNaN(value)) return '0';
+    if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+    return value.toLocaleString();
+  };
+
+  // Prepare chart data for product group summary
+  const summaryChartData = forecastData?.summary_by_product_group?.map(item => ({
+    product_group: item.product_group,
+    target_policies: item.target_policy_count,
+    forecast_paid: item.forecast_paid_count,
+    paid_percentage: item.avg_paid_percentage,
+  })) || [];
+
+  // Prepare chart data for band-level forecast
+  const bandChartData = forecastData?.band_level_forecast?.map(item => ({
+    band: `${item.policy_aging_band} / ${item.lapse_aging_band}`,
+    forecast_paid: item.forecast_paid_count,
+    avg_paid_pct: item.avg_paid_percentage,
+  })) || [];
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Header */}
+      <GlassCard className="!p-5 border-b-2 border-b-indigo-500/40 shrink-0">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-xl bg-indigo-500/15 border border-indigo-500/25 text-indigo-400 mt-0.5">
+              <BarChart3 size={22} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <h2 className="text-base font-semibold text-white">Lapse Forecast & KPI Prediction</h2>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/25 text-indigo-300 font-medium tracking-wide">Rolling 4-Month Avg</span>
+              </div>
+              <p className="text-xs text-gray-400">Forecast paid policies using policy aging & lapse aging bands from historical data.</p>
+              {lastRun && <div className="flex items-center gap-1.5 mt-1.5"><Clock size={10} className="text-gray-600" /><span className="text-[10px] text-gray-600">Last run: {lastRun}</span></div>}
+            </div>
+          </div>
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="flex flex-col gap-1 flex-1 md:flex-none">
+              <label className="text-[10px] text-gray-500 uppercase tracking-widest pl-1">Target Month</label>
+              <input 
+                type="month" 
+                value={targetMonth} 
+                onChange={(e) => setTargetMonth(e.target.value)}
+                className="bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all" 
+              />
+            </div>
+            <button 
+              onClick={handleRunForecast} 
+              disabled={loading}
+              className={`flex items-center whitespace-nowrap gap-2 px-5 py-2 rounded-xl font-medium text-sm transition-all mt-4 ${
+                loading ? 'bg-gray-700/50 text-gray-500 cursor-not-allowed border border-white/5'
+                        : 'bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white border border-indigo-400/20 shadow-lg shadow-indigo-900/20'}`}
+            >
+              {loading ? <><RefreshCw size={14} className="animate-spin" /> Generating…</> : <><Play size={14} fill="currentColor" /> Generate Forecast</>}
+            </button>
+          </div>
+        </div>
+      </GlassCard>
+
+      {error && <ErrorBanner error={error} />}
+      
+      {loading && <TrainingLoader label="Generating lapse forecast…" accentColor="#6366f1" />}
+
+      {!loading && forecastData && (
+        <div className="flex flex-col gap-4">
+          {/* Comparison Months Info */}
+          <GlassCard className="!p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Calendar size={14} className="text-indigo-400" />
+              <span className="text-xs font-semibold text-white uppercase tracking-widest">Comparison Months</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {forecastData.comparison_months.map((month) => (
+                <span key={month} className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-300">
+                  {month}
+                </span>
+              ))}
+            </div>
+          </GlassCard>
+
+          {/* KPI Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            {forecastData.summary_by_product_group.map((summary, idx) => (
+              <div key={summary.product_group} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 relative overflow-hidden">
+                <div className="absolute top-0 left-0 h-full w-1 rounded-l-xl bg-indigo-500" />
+                <div className="ml-2">
+                  <div className="flex items-center gap-1.5">
+                    <DollarSign size={12} className="text-indigo-400" />
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                      {summary.product_group}
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xl font-semibold leading-none text-white">
+                    {formatCount(summary.forecast_paid_count)}
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500">
+                    Forecast paid policies
+                  </div>
+                  <div className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-indigo-400">
+                    <ArrowUpRight size={12} />
+                    {summary.avg_paid_percentage.toFixed(1)}% avg paid rate
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Product Group Bar Chart */}
+            <GlassCard title="Forecast by Product Group" subtitle="Target vs Forecast paid policies">
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={summaryChartData} margin={{ top: 12, right: 12, left: -24, bottom: 0 }} barGap={8}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                  <XAxis dataKey="product_group" stroke="rgba(255,255,255,0.25)" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+                  <YAxis stroke="rgba(255,255,255,0.25)" tickLine={false} axisLine={false} tick={{ fontSize: 10 }} tickFormatter={formatCount} />
+                  <RechartsTooltip 
+                    cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                    contentStyle={{ backgroundColor: 'rgba(10,10,15,0.92)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', fontSize: 12 }}
+                    formatter={(value, name) => [formatCount(value), name === 'target_policies' ? 'Target Policies' : 'Forecast Paid']}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                  <Bar dataKey="target_policies" fill="#6366f1" radius={[4,4,0,0]} barSize={36} name="Target Policies" />
+                  <Bar dataKey="forecast_paid" fill="#34d399" radius={[4,4,0,0]} barSize={36} name="Forecast Paid" />
+                </BarChart>
+              </ResponsiveContainer>
+            </GlassCard>
+
+            {/* Band Level Area Chart */}
+            <GlassCard title="Band-Level Forecast" subtitle="Paid percentage by aging bands">
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={bandChartData} margin={{ top: 12, right: 12, left: -24, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="bandGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f472b6" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#f472b6" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                  <XAxis dataKey="band" stroke="rgba(255,255,255,0.25)" tickLine={false} axisLine={false} tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={60} />
+                  <YAxis stroke="rgba(255,255,255,0.25)" tickLine={false} axisLine={false} tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}%`} />
+                  <RechartsTooltip 
+                    cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                    contentStyle={{ backgroundColor: 'rgba(10,10,15,0.92)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', fontSize: 12 }}
+                    formatter={(value, name) => [`${value.toFixed(1)}%`, name === 'avg_paid_pct' ? 'Avg Paid %' : 'Forecast']}
+                  />
+                  <Area type="monotone" dataKey="avg_paid_pct" stroke="#f472b6" strokeWidth={2} fill="url(#bandGrad)" name="Avg Paid %" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </GlassCard>
+          </div>
+
+          {/* Monthly Breakdown Table */}
+          <GlassCard title="Monthly Breakdown" subtitle="Historical data from comparison months">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/10">
+                    <th className="text-left py-2 px-3 text-gray-400 font-medium">Month</th>
+                    <th className="text-left py-2 px-3 text-gray-400 font-medium">Product Group</th>
+                    <th className="text-left py-2 px-3 text-gray-400 font-medium">Policy Aging</th>
+                    <th className="text-left py-2 px-3 text-gray-400 font-medium">Lapse Aging</th>
+                    <th className="text-right py-2 px-3 text-gray-400 font-medium">Total Policies</th>
+                    <th className="text-right py-2 px-3 text-gray-400 font-medium">Paid Policies</th>
+                    <th className="text-right py-2 px-3 text-gray-400 font-medium">Paid %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {forecastData.monthly_breakdown.slice(0, 20).map((row, idx) => (
+                    <tr key={idx} className="border-b border-white/5 hover:bg-white/5">
+                      <td className="py-2 px-3 text-white">{row.month}</td>
+                      <td className="py-2 px-3 text-gray-300">{row.product_group}</td>
+                      <td className="py-2 px-3 text-gray-300">{row.policy_aging_band}</td>
+                      <td className="py-2 px-3 text-gray-300">{row.lapse_aging_band}</td>
+                      <td className="py-2 px-3 text-right text-white">{formatCount(row.total_policy_count)}</td>
+                      <td className="py-2 px-3 text-right text-emerald-400">{formatCount(row.paid_policy_count)}</td>
+                      <td className="py-2 px-3 text-right text-white">{row.paid_percentage.toFixed(1)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {forecastData.monthly_breakdown.length > 20 && (
+                <div className="text-center py-2 text-xs text-gray-500">
+                  Showing 20 of {forecastData.monthly_breakdown.length} records
+                </div>
+              )}
+            </div>
+          </GlassCard>
+        </div>
+      )}
+
+      {!loading && !forecastData && !error && (
+        <EmptyState icon={BarChart3} label="Lapse forecast not generated yet" color="#6366f1" />
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────
 // ② LOGISTIC REGRESSION  (V2)
 // ─────────────────────────────────────────────
-const LogisticRegressionSection = ({ theme }) => {
+const LogisticRegressionSection = ({ scope }) => {
   const [testMonth, setTestMonth] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
@@ -441,13 +711,18 @@ const LogisticRegressionSection = ({ theme }) => {
   const [lastRun, setLastRun] = useState(null);
 
   const handleRun = async () => {
+    if (scope !== PREDICTION_SCOPES.LIFE) {
+      setError('Logistic Regression V2 is currently available only for Life Insurance.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
     try {
       // apiV2.baseURL = http://localhost:8080/api/v2  →  hits /api/v2/ml/train/logistic-v2
       const { data } = await apiV2.post('/ml/train/logistic-v2', null, {
-        params: { test_month: testMonth },
+        params: { test_month: testMonth, domain: scope },
       });
       if (data?.status !== 'success') { setError(data?.message || 'Unexpected response.'); return; }
       setResult({ metrics: normMetrics(data.metrics), cm: normCM(data.confusion_matrix) });
@@ -459,7 +734,7 @@ const LogisticRegressionSection = ({ theme }) => {
     }
   };
 
-  const colors = { success: theme?.isLife ? '#2dd4bf' : '#fbbf24', fail: '#f87171' };
+  const colors = { success: '#2dd4bf', fail: '#f87171' };
 
   return (
     <div className="flex flex-col gap-4">
@@ -504,15 +779,117 @@ const LogisticRegressionSection = ({ theme }) => {
 };
 
 // ─────────────────────────────────────────────
+// ④ DEBT COLLECTION RECOVERY SECTION
+// ─────────────────────────────────────────────
+const DebtRecoverySection = () => {
+  const [testMonth, setTestMonth] = useState('2025-12-01');
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState(null);
+  const [result, setResult]       = useState(null);
+  const [lastRun, setLastRun]     = useState(null);
+
+  const handleRun = async () => {
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const { data } = await api.post('/ml/train/debt-collection', null, { params: { test_month: testMonth } });
+      if (data?.status !== 'success') { setError(data?.message || 'Unexpected response.'); return; }
+      setResult({ metrics: normMetrics(data.metrics), cm: normCM(data.confusion_matrix) });
+      setLastRun(new Date().toLocaleTimeString());
+    } catch (err) {
+      setError(err.response?.data?.detail ?? err.message ?? 'Failed to train.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const colors = { success: '#fbbf24', fail: '#f87171' };
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Header */}
+      <GlassCard className="!p-5 border-b-2 border-b-amber-500/40 shrink-0">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/25 text-amber-400 mt-0.5">
+              <DollarSign size={22} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <h2 className="text-base font-semibold text-white">Debt Recovery Prediction Engine</h2>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-300 font-medium tracking-wide">Debt AI</span>
+              </div>
+              <p className="text-xs text-gray-400">Random Forest propensity model · Predict payment likelihood for debt portfolio accounts.</p>
+              {lastRun && <div className="flex items-center gap-1.5 mt-1.5"><Clock size={10} className="text-gray-600" /><span className="text-[10px] text-gray-600">Last run: {lastRun}</span></div>}
+            </div>
+          </div>
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="flex flex-col gap-1 flex-1 md:flex-none">
+              <label className="text-[10px] text-gray-500 uppercase tracking-widest pl-1">Test Month</label>
+              <input type="date" value={testMonth} onChange={(e) => setTestMonth(e.target.value)}
+                className="bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition-all" />
+            </div>
+            <button onClick={handleRun} disabled={loading}
+              className={`flex items-center whitespace-nowrap gap-2 px-5 py-2 rounded-xl font-medium text-sm transition-all mt-4 ${
+                loading ? 'bg-gray-700/50 text-gray-500 cursor-not-allowed border border-white/5'
+                        : 'bg-amber-600 hover:bg-amber-500 active:scale-95 text-white border border-amber-400/20 shadow-lg shadow-amber-900/20'}`}>
+              {loading ? <><RefreshCw size={14} className="animate-spin" /> Training…</> : <><Play size={14} fill="currentColor" /> Run Prediction</>}
+            </button>
+          </div>
+        </div>
+      </GlassCard>
+
+      {error   && <ErrorBanner error={error} />}
+      {loading && <TrainingLoader label="Training Debt Recovery Model…" accentColor="#f59e0b" />}
+      {!loading && result && <ModelResults metrics={result.metrics} cm={result.cm} testMonth={testMonth} colors={colors} accentColor="#f59e0b" />}
+      {!loading && !result && !error && <EmptyState icon={DollarSign} label="Debt Recovery model not run yet" color="#f59e0b" />}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────
 // ROOT EXPORT
 // ─────────────────────────────────────────────
 const Predictions = () => {
-  const { mainDomain, theme } = useDomain();
+  const { mainDomain, subDomain } = useDomain();
+  const scope = getPredictionScope(mainDomain, subDomain);
+
+  if (scope === PREDICTION_SCOPES.HEALTH) {
+    return (
+      <div className="flex flex-col gap-6 h-full pb-6 overflow-y-auto overflow-x-hidden animate-fade-in-up">
+        <GlassCard className="!p-6 border border-emerald-500/25 bg-emerald-500/5">
+          <div className="flex items-start gap-3">
+            <AlertTriangle size={18} className="text-emerald-300 mt-0.5 shrink-0" />
+            <div>
+              <h3 className="text-sm font-semibold text-white mb-1">Health Insurance Predictions</h3>
+              <p className="text-xs text-gray-300">
+                Health Insurance prediction engines are not configured yet. Switch to Life Insurance or Debt Collection to run models.
+              </p>
+            </div>
+          </div>
+        </GlassCard>
+      </div>
+    );
+  }
+
+  // ── DEBT COLLECTION ──
+  if (scope === PREDICTION_SCOPES.DEBT) {
+    return (
+      <div className="flex flex-col gap-6 h-full pb-6 overflow-y-auto overflow-x-hidden animate-fade-in-up">
+        <DebtRecoverySection />
+      </div>
+    );
+  }
+
+  // ── LIFE INSURANCE ──
   return (
     <div className="flex flex-col gap-6 h-full pb-6 overflow-y-auto overflow-x-hidden animate-fade-in-up">
-      <RandomForestSection mainDomain={mainDomain} theme={theme} />
+      <LapseForecastSection />
+      <SectionDivider label="Random Forest · V1" color="teal" />
+      <RandomForestSection key={`rf-${scope}`} scope={scope} />
       <SectionDivider label="Logistic Regression · V2" color="purple" />
-      <LogisticRegressionSection theme={theme} />
+      <LogisticRegressionSection key={`lr-${scope}`} scope={scope} />
     </div>
   );
 };
